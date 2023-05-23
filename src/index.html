@@ -55,6 +55,10 @@ function kb_Scan() {
 
 }
 
+function gfx_FillCircle(x, y, radius) {
+
+}
+
 </script>
 
 <script>
@@ -64,7 +68,7 @@ var upIndexerIsDown;
 var downIndexerIsDown;
 var isInputting = true;
 
-var timeStep = 0;
+var timeStep = 3600;
 
 var maxBodies = 50
 var SCREEN_X = 320;
@@ -73,8 +77,8 @@ var SCREEN_Y = 240;
 var camX = 0;
 var camY = 0;
 
-var num_bodies;
-var num_debris;
+var num_bodies = 0;
+var num_debris = 0;
 var camX2 = 0;
 var camY2 = 0;
 
@@ -82,7 +86,7 @@ var camZoom = 100000;
 var correctSizedBodies = true;
 
 //Don't use this unless you know you will be in the input dialauge, it wont be updated otherwise!
-var ressingNumNow;
+var pressingNumNow;
 
 
 var selectedPlanet = 0;
@@ -97,24 +101,24 @@ class body {
     mass;
 
     // If the body is actually in use or is free to be replaced
-    isBeingUsed;
-    isSimple;
+    isBeingUsed = false;
+    isSimple = false;
 
     // 1000 = 1kg per cubic meter
-    atmosphereDensity;
-    radius;
-    magFieldStrength;
-    area;
+    atmosphereDensity = 0;
+    radius = 0;
+    magFieldStrength = 0;
+    area = 0;
 
     // Kelvin
-    surfaceTemperature;
-    color;
+    surfaceTemperature = 27;
+    color = 0;
 
     // Surface temp and area combined
-    brightness;
-    surfaceStabilizeTemperature;
+    brightness = 0;
+    surfaceStabilizeTemperature = 0;
 
-    coreTemperature;
+    coreTemperature = 0;
 
     // In km/h
     velocityX;
@@ -130,7 +134,10 @@ class body {
     y;
 }
 
-var bodies = new Array(maxBodies + 1).fill(new body());
+var bodies = [];
+for(var i = 0; i < maxBodies + 1; i++) {
+	bodies.push(new body());
+}
 
 function fastestSqrt64(n)
 {
@@ -209,8 +216,8 @@ function newDebris(i, otherObj, percentOfPrevBody) {
     bodies[newIndex].y = bodies[i].y;
 
 
-    var randomDir1 = rand() % 256;
-    var randomDir2 = rand() % 256;
+    var randomDir1 = Math.random() * 256;
+    var randomDir2 = Math.random() * 256;
 
     bodies[newIndex].velocityX = bodies[i].velocityX + randomDir1 * 50;//(bodies[i].velocityX / 3 * randomDir / 128);
     bodies[newIndex].velocityY = bodies[i].velocityY + randomDir2 * 50;//(bodies[i].velocityY / 3 * 128 / randomDir);
