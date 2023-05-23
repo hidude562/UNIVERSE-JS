@@ -1,0 +1,709 @@
+<canvas id="canvas"></canvas>
+
+<script>
+// Simulating graphx methods
+var cursorX = 0;
+var cursorY = 0;
+
+var kb_2nd;
+var kb_Alpha
+var kb_Right;
+var kb_Left;
+var kb_Up;
+var kb_Down;
+var kb_DecPnt;
+var kb_Data;
+var kb_Chs;
+var kb_Enter;
+var kb_Sto;
+var kb_6;
+var kb_3;
+
+function gfx_FillScreen(color) {
+
+}
+
+function gfx_SetTextFGColor(color) {
+
+}
+
+function gfx_SetTextXY(x, y) {
+
+}
+
+function gfx_PrintInt(num, _sdsdf) {
+
+}
+
+function gfx_PrintString(str) {
+
+}
+
+function gfx_SetColor(str) {
+
+}
+
+function clock() {
+	return 0;
+}
+
+function gfx_PrintUInt(num) {
+
+}
+
+function kb_Scan() {
+
+}
+
+</script>
+
+<script>
+var selectedIndex;
+
+var upIndexerIsDown;
+var downIndexerIsDown;
+var isInputting = true;
+
+var timeStep = 0;
+
+var maxBodies = 50
+var SCREEN_X = 320;
+var SCREEN_Y = 240;
+
+var camX = 0;
+var camY = 0;
+
+var num_bodies;
+var num_debris;
+var camX2 = 0;
+var camY2 = 0;
+
+var camZoom = 100000;
+var correctSizedBodies = true;
+
+//Don't use this unless you know you will be in the input dialauge, it wont be updated otherwise!
+var ressingNumNow;
+
+
+var selectedPlanet = 0;
+var beginFrame;
+
+class body {
+	// Mass isn't really a specific unit but the weight of the earth is about 130,000
+    // To convert from kg to this unit, divide by 46,000,000,000,000,000,000
+    name;
+    desc;
+
+    mass;
+
+    // If the body is actually in use or is free to be replaced
+    isBeingUsed;
+    isSimple;
+
+    // 1000 = 1kg per cubic meter
+    atmosphereDensity;
+    radius;
+    magFieldStrength;
+    area;
+
+    // Kelvin
+    surfaceTemperature;
+    color;
+
+    // Surface temp and area combined
+    brightness;
+    surfaceStabilizeTemperature;
+
+    coreTemperature;
+
+    // In km/h
+    velocityX;
+    velocityY;
+
+    // A value equal to its own mass is similar water levels to Earth
+    waterAmount;
+
+    // Planet display vars
+    moonLike;
+
+    x;
+    y;
+}
+
+var bodies = new Array(maxBodies + 1).fill(new body());
+
+function fastestSqrt64(n)
+{
+    return Math.sqrt(n);
+}
+
+function getRandomName() {
+	var vowels = ["a", "ar", "oo", "o", "u", "e", "ea", "i"];
+	var consonants = ["b", "c", "n", "p", "k", "d", "t", "v"];
+	var newName = "";
+
+	for (var i = 0; i < Math.floor(Math.random() * 5) + 2; i++) {
+		if (i % 2 === 0) {
+			newName += vowels[Math.floor(Math.random() * 8)];
+		} else {
+			newName += consonants[Math.floor(Math.random() * 8)];
+		}
+	}
+
+	return newName;
+}
+
+// Not needed as only for inputing
+//function getNumOnKeyboard(bool prevNum)
+
+function getInput(formerValue) {
+	// TODO: input prompt
+}
+
+function gfx_PrintInt64_t(num, _hereForConsistancyDoesntDoAnything) {
+	gfx_PrintInt(num, 1);
+}
+
+// Prompt another way
+//void inputDisplay(int64_t val)
+
+function setAdvancedPlanet(i, x, y, vx, vy, mass, radius, name, coreTemperature, atmosphereDensity, waterAmount, moonLike) {
+    num_bodies++;
+    // Mars-like planet
+    bodies[i].isBeingUsed = true;
+    bodies[i].name = name;
+    bodies[i].radius = radius;
+    bodies[i].mass = mass;
+    bodies[i].x = x;
+    bodies[i].y = y;
+    bodies[i].velocityX = vx;
+    bodies[i].velocityY = vy;
+    bodies[i].moonLike = moonLike;
+
+    bodies[i].surfaceTemperature = 288;
+    bodies[i].coreTemperature = coreTemperature;
+    bodies[i].atmosphereDensity = atmosphereDensity;
+    bodies[i].waterAmount = waterAmount;
+}
+
+function cameraOnPlanet(planet) {
+    camX2 = bodies[planet].x;
+    camY2 = bodies[planet].y;
+}
+
+// Creates new debris that has similar compisition to I but less of it
+function newDebris(i, otherObj, percentOfPrevBody) {
+    var newIndex = maxBodies - num_debris;
+    num_debris++;
+    bodies[newIndex].isBeingUsed = true;
+    bodies[newIndex].isSimple = true;
+
+    bodies[newIndex].mass = (bodies[i].mass * percentOfPrevBody) / 100;
+    bodies[newIndex].waterAmount = (bodies[i].waterAmount * percentOfPrevBody) / 100;
+    bodies[newIndex].atmosphereDensity = (bodies[i].atmosphereDensity * percentOfPrevBody) / 100;
+    bodies[newIndex].radius = (bodies[i].radius * percentOfPrevBody) / 100;
+    bodies[newIndex].surfaceTemperature = 300;
+    bodies[newIndex].coreTemperature = 1000;
+
+    bodies[newIndex].x = bodies[i].x;
+    bodies[newIndex].y = bodies[i].y;
+
+
+    var randomDir1 = rand() % 256;
+    var randomDir2 = rand() % 256;
+
+    bodies[newIndex].velocityX = bodies[i].velocityX + randomDir1 * 50;//(bodies[i].velocityX / 3 * randomDir / 128);
+    bodies[newIndex].velocityY = bodies[i].velocityY + randomDir2 * 50;//(bodies[i].velocityY / 3 * 128 / randomDir);
+
+    var deltaX = (bodies[i].x - bodies[otherObj].x);
+    var deltaY = (bodies[i].y - bodies[otherObj].y);
+
+    bodies[newIndex].velocityX += deltaX / 4;
+    bodies[newIndex].velocityY += deltaY / 4;
+
+    var distanceToOther = fastestSqrt64((deltaX * deltaX) + (deltaY * deltaY));
+    bodies[newIndex].x += ((deltaX * 100) / distanceToOther) * (bodies[otherObj].radius + bodies[i].radius) / 98;
+    bodies[newIndex].y += ((deltaY * 100) / distanceToOther) * (bodies[otherObj].radius + bodies[i].radius) / 98;
+}
+
+// Precondition: obj1 is larger (in mass) than obj2
+// Also that obj1 is not a simple object, which should be the case anyway
+function createDebris(obj1, obj2) {
+    bodies[obj1].surfaceTemperature += bodies[obj2].mass * 100 / (bodies[obj1].mass / 100) * 4;
+    if(bodies[obj1].mass / bodies[obj2].mass > 200 || bodies[obj2].isSimple) {
+        bodies[obj1].mass += bodies[obj2].mass;
+        bodies[obj1].waterAmount += bodies[obj2].waterAmount;
+        bodies[obj1].atmosphereDensity += bodies[obj2].atmosphereDensity / (bodies[obj1].mass / bodies[obj2].mass);
+        // technically not correct
+        bodies[obj1].radius += bodies[obj2].radius;
+
+        removeBody(obj2);
+        return;
+    } else {
+
+        newDebris(obj2, obj1, 20);
+        newDebris(obj2, obj1, 20);
+        newDebris(obj2, obj1, 20);
+        newDebris(obj2, obj1, 20);
+        newDebris(obj2, obj1, 20);
+
+        removeBody(obj2);
+    }
+}
+
+function main()
+{
+	
+    // Test for collision
+    /*
+    setAdvancedPlanet(0, 0, 0, 0, 0, 130000, 63780, "Earth", 15900, 1293, 130000, false);
+    setAdvancedPlanet(1, 0, -384400, 0, 0, 1560, 10079, "Luna", 1300, 0, 0, true);
+    */
+
+
+    setAdvancedPlanet(0, 0, 0, 107826, 0, 130000, 6378, "Earth", 1590, 1293, 130000, false);
+    setAdvancedPlanet(1, 0, -384400, 107826 + 3683, 0, 1600, 1079, "Luna", 1300, 0, 0, true);
+    setAdvancedPlanet(2, 0, -150000000, 0, 0, 43000000000, 696000, "Sol", 15000255, 0, 0, false);
+    setAdvancedPlanet(3, 0, -150000000 + 66784000, 146000, 0, 106000, 6051, "Venus", 5160, 65000, 0, false);
+    setAdvancedPlanet(4, 0, -150000000 + 250000000, 86677, 0, 13891, 2106, "Mars", 1090, 12, 2000, false);
+
+    return 0;
+}
+
+function gameStep() {
+	if(timeStep > 0) {
+		calculateAllBodyPhysics();
+	}
+	cameraOnPlanet(selectedPlanet);
+	draw();
+	controls();
+}
+
+function applyBody(i) {
+    bodies[i].x += bodies[i].velocityX * (timeStep * 1 / 3600) / 1;
+    bodies[i].y += bodies[i].velocityY * (timeStep * 1 / 3600) / 1;
+
+    // TODO: Do off of timeStep
+    bodies[i].surfaceTemperature += ((bodies[i].surfaceStabilizeTemperature - bodies[i].surfaceTemperature)) / 2;
+    bodies[i].brightness = (((bodies[i].radius / 100) * (bodies[i].radius / 100) / 1000) * bodies[i].surfaceTemperature) / 48400;
+    if(bodies[i].surfaceTemperature > 365) {
+        var waterRemovePercent = 99;
+        if(bodies[i].surfaceTemperature < 385) {
+            waterRemovePercent = 5;
+        } else if(bodies[i].surfaceTemperature < 400) {
+            waterRemovePercent = 15;
+        } else if(bodies[i].surfaceTemperature < 600) {
+            waterRemovePercent = 25;
+        } else {
+            waterRemovePercent = 50;
+        }
+
+        bodies[i].atmosphereDensity += (bodies[i].waterAmount * waterRemovePercent) / bodies[i].radius;
+        bodies[i].waterAmount -=  (bodies[i].waterAmount * waterRemovePercent) / 100;
+    }
+
+    //bodies[i].surfaceTemperature += (bodies[i].surfaceStabilizeTemperature - bodies[i].surfaceTemperature) / 10;
+}
+
+function physics(i) {
+    bodies[i].surfaceStabilizeTemperature = bodies[i].coreTemperature / 2599;
+
+    for(var j = 0; j < num_bodies; j++) {
+        if(j != i) {
+            if(bodies[j].mass * 15 / bodies[i].mass != 0) {
+                var deltaX = bodies[j].x - bodies[i].x;
+                var deltaY = bodies[j].y - bodies[i].y;
+                var squaredDist = (deltaX * deltaX) + (deltaY * deltaY);
+                var dist   = fastestSqrt64(squaredDist);
+                bodies[i].surfaceStabilizeTemperature += (6931208 * bodies[j].brightness) / (dist + 1213 * bodies[j].brightness) + 10;
+
+                // gravity calculations
+                if((bodies[j].mass * 100000) / (squaredDist / 10000 + 1) != 0) {
+                    var gravityX = (deltaX * 10) / (dist / 10) * (bodies[j].mass / 100);//(bodies[j].mass / (dist / 10));
+                    var gravityY = (deltaY * 10) / (dist / 10) * (bodies[j].mass / 100);//(bodies[j].mass) / (dist / 10);
+
+                    gravityX*=(timeStep / 3600);
+                    gravityY*=(timeStep / 3600);
+                    bodies[i].velocityX += gravityX / (squaredDist / 40000000); //(timeStep / 10);  bodies[j].mass /
+                    bodies[i].velocityY += gravityY / (squaredDist / 40000000); //(timeStep / 10);
+                }
+
+                // Collision calculations
+                if(dist - bodies[i].radius < bodies[j].radius) {
+                    if(bodies[i].mass > bodies[j].mass) {
+                        createDebris(i, j);
+                    } else {
+                        createDebris(j, i);
+                    }
+                }
+           }
+        }
+    }
+
+    bodies[i].coreTemperature = estimatedCoreTemp(bodies[i].mass);
+    bodies[i].surfaceStabilizeTemperature = (bodies[i].surfaceStabilizeTemperature * (1000 + bodies[i].atmosphereDensity / 300)) / 1000;
+}
+
+function simplePhysics(i) {
+    for(var j = 0; j < num_bodies; j++) {
+        if(bodies[j].mass * 15 / bodies[i].mass != 0) {
+            var deltaX = bodies[j].x - bodies[i].x;
+            var deltaY = bodies[j].y - bodies[i].y;
+            var squaredDist = (deltaX * deltaX) + (deltaY * deltaY);
+            var dist   = fastestSqrt64(squaredDist);
+
+            if((bodies[j].mass * 100000) / (squaredDist / 10000 + 1) != 0) {
+                var gravityX = (deltaX * 10) / (dist / 10) * (bodies[j].mass / 100);//(bodies[j].mass / (dist / 10));
+                var gravityY = (deltaY * 10) / (dist / 10) * (bodies[j].mass / 100);//(bodies[j].mass) / (dist / 10);
+
+                gravityX*=(timeStep / 3600);
+                gravityY*=(timeStep / 3600);
+                bodies[i].velocityX += gravityX / (squaredDist / 40000000); //(timeStep / 10);  bodies[j].mass /
+                bodies[i].velocityY += gravityY / (squaredDist / 40000000); //(timeStep / 10);
+            }
+
+            if(dist - bodies[i].radius < bodies[j].radius) {
+                createDebris(j, i);
+            }
+
+        }
+    }
+}
+
+function removeBody(index) {
+    //Automatically shifts elements too
+    var wasSimple = bodies[index].isSimple;
+    bodies[index].isBeingUsed = false;
+    if(!wasSimple) {
+        for(var i = index; i < num_bodies; i++ ) {
+            bodies[i] = bodies[i + 1];
+        }
+    } else {
+        for(var i = index; i > maxBodies - num_debris; i--) {
+            bodies[i] = bodies[i - 1];
+        }
+    }
+
+    if(!wasSimple) {
+        if(selectedPlanet >= index && selectedPlanet != 0) {
+            selectedPlanet--;
+        }
+        num_bodies--;
+
+    } else {
+        num_debris--;
+    }
+}
+
+function calculateAllBodyPhysics() {
+    for(var i = 0; i < num_bodies; i++) {
+        // Really bad efficiency since this doesn't just check the parent for gravity
+        // O(n^2 - n) efficiency worst case
+        // Best case is O(n) i think
+        physics(i);
+    }
+
+    for(var i = maxBodies; i > maxBodies - num_debris; i--) {
+        simplePhysics(i);
+    }
+
+    for(var i = 0; i < num_bodies; i++) {
+        applyBody(i);
+    }
+
+    for(var i = maxBodies; i > maxBodies - num_debris; i--) {
+        applyBody(i);
+    }
+}
+
+/* Implement me! */
+function begin()
+{
+
+}
+
+/* Implement me! */
+function end()
+{
+
+}
+
+function setSelectedIndexValueByUserInput() {
+    var prevVal = 0;
+    if(selectedIndex == 0) {//name
+
+    }
+    else if(selectedIndex == 1) {//radius
+        prevVal = bodies[selectedPlanet].radius;
+        bodies[selectedPlanet].radius = getInput(prevVal);
+    }
+    else if(selectedIndex == 2) {//surfaceTemp
+        prevVal = bodies[selectedPlanet].surfaceTemperature;
+        bodies[selectedPlanet].surfaceTemperature = getInput(prevVal);
+    }
+    else if(selectedIndex == 3) {//surfaceTempF
+        prevVal = (bodies[selectedPlanet].surfaceTemperature - 273) * 9 / 5 + 32;
+        bodies[selectedPlanet].surfaceTemperature = (getInput(prevVal) - 32) * 5 / 9 + 273;
+    }
+    else if(selectedIndex == 4) {//Vx
+        prevVal = bodies[selectedPlanet].velocityX;
+        bodies[selectedPlanet].velocityX = getInput(prevVal);
+    }
+    else if(selectedIndex == 5) {//Vy
+        prevVal = bodies[selectedPlanet].velocityY;
+        bodies[selectedPlanet].velocityY = getInput(prevVal);
+    }
+    else if(selectedIndex == 6) {//mass
+        prevVal = bodies[selectedPlanet].mass;
+        bodies[selectedPlanet].mass = getInput(prevVal);
+    }
+    else if(selectedIndex == 7) {//atmosphree
+        prevVal = bodies[selectedPlanet].atmosphereDensity;
+        bodies[selectedPlanet].atmosphereDensity = getInput(prevVal);
+    }
+    else if(selectedIndex == 8) {//water
+        prevVal = bodies[selectedPlanet].waterAmount;
+        bodies[selectedPlanet].waterAmount = getInput(prevVal);
+    }
+    else if(selectedIndex == 10) {// New Moon
+        setAdvancedPlanet(num_bodies, bodies[selectedPlanet].x, bodies[selectedPlanet].y + bodies[selectedPlanet].radius * 10,bodies[selectedPlanet].velocityX + fastestSqrt64(bodies[selectedPlanet].mass) * 25, bodies[selectedPlanet].velocityY, 13891, 2106, getRandomName(), 1090, 12, 2000, false);
+        selectedPlanet = num_bodies - 1;
+    }
+    else if(selectedIndex == 11) {// Remove body
+        removeBody(selectedPlanet);
+    }
+	// TODO:
+    //while((kb_Data[2] & kb_Sto)) {kb_Scan();}
+}
+
+function controls() {
+    kb_Scan();
+
+    if (kb_2nd) {
+        camZoom -= (camZoom / 10);
+    }
+    if (kb_Alpha) {
+        camZoom += (camZoom / 10);
+    }
+    if (kb_Right) {
+        camX += (camZoom / 40);
+    }
+    if (kb_Left) {
+        camX -= (camZoom / 40);
+    }
+    if (kb_Up) {
+        camY += (camZoom / 40);
+    }
+    if (kb_Down) {
+        camY -= (camZoom / 40);
+    }
+    if((kb_DecPnt)) {
+        if(!prevDecPoint)
+            if(timeStep == 0) {
+                timeStep+=3600;
+            } else {
+                timeStep*=2;
+            }
+        prevDecPoint = true;
+    } else {prevDecPoint = false;}
+    if((kb_Chs)) {
+        if(!prevChs && timeStep > 3600)
+            timeStep/=2;
+        else {
+            paused = true;
+            timeStep = 0;
+        }
+        prevChs = true;
+    } else {prevChs = false;}
+
+    if((kb_Enter)) {
+        if(!prevEnter) {
+            selectedPlanet=(selectedPlanet + 1) % num_bodies;
+            camX = 0;
+            camY = 0;
+        }
+        prevEnter = true;
+    } else {prevEnter = false;}
+
+    if(kb_Sto) {
+        timeStep = 0;
+        draw();
+        setSelectedIndexValueByUserInput();
+    }
+
+
+    if((kb_6)) {
+        if(!upIndexerIsDown) {
+            selectedIndex--;
+        }
+        upIndexerIsDown = true;
+    } else {upIndexerIsDown = false;}
+
+    if((kb_3)) {
+        if(!downIndexerIsDown) {
+            selectedIndex++;
+        }
+        downIndexerIsDown = true;
+    } else {downIndexerIsDown = false;}
+}
+
+function draw_planet(i) {
+    gfx_SetColor(bodies[i].color);
+    var drawSize = 10;
+    if(correctSizedBodies) {
+        drawSize = bodies[i].radius * SCREEN_X / camZoom;
+        if(drawSize < 2) {
+            drawSize =1;
+        }
+    }
+    //gfx_FillCircle(150, 150, drawSize);
+    var dispX = (bodies[i].x - camX - camX2) * SCREEN_X / camZoom + 160;
+    if(dispX + drawSize > 0 && dispX - drawSize < SCREEN_X) {
+        var dispY = (camY + camY2 - bodies[i].y) * SCREEN_X / camZoom + 120;
+        if(dispY + drawSize > 0 && dispY - drawSize < SCREEN_Y) {
+            gfx_FillCircle(dispX, dispY, drawSize);
+        }
+    }
+}
+
+function planetInfo() {
+    gfx_SetColor(0);
+    //gfx_FillRectangle(SCREEN_X - 80, 0, 80, 240);
+    gfx_SetTextXY(SCREEN_X - 110, 0);
+
+    gfx_PrintString(bodies[selectedPlanet].name);
+
+    gfx_SetTextXY(SCREEN_X - 110, 20);
+
+    gfx_PrintString("R:");
+    gfx_PrintUInt(bodies[selectedPlanet].radius, 1);
+    gfx_PrintString("km");
+
+    gfx_SetTextXY(SCREEN_X - 110, 30);
+
+    gfx_PrintString("T:");
+    gfx_PrintUInt(bodies[selectedPlanet].surfaceTemperature, 1);
+    gfx_PrintString("K");
+
+    gfx_SetTextXY(SCREEN_X - 110, 40);
+
+    gfx_PrintString("T:");
+    gfx_PrintInt((bodies[selectedPlanet].surfaceTemperature - 273) * 9 / 5 + 32, 1);
+    gfx_PrintString("F");
+
+    gfx_SetTextXY(SCREEN_X - 110, 50);
+
+    gfx_PrintString("Vx:");
+    gfx_PrintInt(bodies[selectedPlanet].velocityX, 1);
+    gfx_PrintString("kmh");
+
+    gfx_SetTextXY(SCREEN_X - 110, 60);
+
+    gfx_PrintString("Vy:");
+    gfx_PrintInt(bodies[selectedPlanet].velocityY, 1);
+    gfx_PrintString("kmh");
+
+    gfx_SetTextXY(SCREEN_X - 110, 70);
+
+    gfx_PrintString("M:");
+    gfx_PrintInt(bodies[selectedPlanet].mass, 1);
+
+    gfx_SetTextXY(SCREEN_X - 110, 80);
+
+    gfx_PrintString("A:");
+    gfx_PrintInt(bodies[selectedPlanet].atmosphereDensity / 1000, 1);
+    gfx_PrintString(".");
+    gfx_PrintInt(bodies[selectedPlanet].atmosphereDensity % 1000, 1);
+    gfx_PrintString("kg/m");
+
+
+    gfx_SetTextXY(SCREEN_X - 110, 90);
+    gfx_PrintString("W:");
+    gfx_PrintInt(bodies[selectedPlanet].waterAmount, 1);
+    //bodies[selectedPlanet].waterAmount
+    gfx_SetTextXY(SCREEN_X - 110, 100);
+    gfx_PrintString("CT:");
+    gfx_PrintInt64_t(bodies[selectedPlanet].coreTemperature, 1);
+    gfx_PrintString("K");
+
+    gfx_SetTextXY(SCREEN_X - 110, 110);
+    gfx_PrintString("Create moon");
+
+    gfx_SetTextXY(SCREEN_X - 110, 120);
+    gfx_PrintString("Remove Body");
+}
+
+// TODO:
+function drawPreviewPlanet() {
+	
+}
+
+function estimatedCoreTemp(mass) {
+    if(mass < 3848) {
+        return mass;
+    } else if(mass < 6063)  {
+        return mass / 80 + 3800;
+    }
+
+    return mass / 2868 + 6000;
+}
+
+function drawSelectedIndex() {
+    gfx_SetColor(0);
+    if(selectedIndex > 0) {
+        gfx_Rectangle(SCREEN_X - 110, selectedIndex * 10 + 10, 110, 8);
+    } else {
+        gfx_Rectangle(SCREEN_X - 110, selectedIndex * 10, 110, 8);
+    }
+}
+
+function gui() {
+    gfx_SetTextFGColor(254);
+    gfx_SetTextXY(0, 0);
+    gfx_PrintInt(camZoom, 2);
+    gfx_PrintString(" KM    ");
+
+    if(timeStep > 0) {
+        gfx_PrintInt(timeStep, 1);
+        gfx_PrintString("x ");
+    } else {
+        gfx_PrintString("Paused ");
+    }
+
+    gfx_SetTextXY(0, SCREEN_Y - 9);
+    gfx_PrintInt(10000 / (clock() - beginFrame), 2);
+    gfx_PrintString("fps ");
+
+    drawPreviewPlanet();
+
+    planetInfo();
+}
+
+function draw()
+{
+    gfx_FillScreen(2);
+    //gfx_SetDefaultPalette(global_palette);
+    for(var i = 0; i < num_bodies; i++) {
+        draw_planet(i);
+    }
+
+    for(var i = maxBodies; i > maxBodies - num_debris; i--) {
+        draw_planet(i);
+    }
+
+    gui();
+}
+
+/* Implement me! */
+function step()
+{
+    return true;
+}
+
+main()
+const interval = setInterval(function() {
+   gameStep();
+ }, 50);
+
+
+</script>
