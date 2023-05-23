@@ -1,46 +1,54 @@
-<canvas id="canvas"></canvas>
+<body style="margin: 0; padding: 0;">
+	<canvas id="canvas" width="480" height="320" style="margin: 0; padding: 0; background-color: black;"></canvas>
+</body>
 
 <script>
 // Simulating graphx methods
 var cursorX = 0;
 var cursorY = 0;
+var normalFontSize = 8;
+var fontSize = 16;
 
-var kb_2nd;
-var kb_Alpha
-var kb_Right;
-var kb_Left;
-var kb_Up;
-var kb_Down;
-var kb_DecPnt;
-var kb_Data;
-var kb_Chs;
-var kb_Enter;
-var kb_Sto;
-var kb_6;
-var kb_3;
+var kb_2nd = false;
+var kb_Alpha = false;
+
+
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext('2d');
 
 function gfx_FillScreen(color) {
-
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function gfx_SetTextFGColor(color) {
-
+	gfx_SetColor(color)
 }
 
 function gfx_SetTextXY(x, y) {
-
+	cursorX = x;
+	cursorY = y;
 }
 
 function gfx_PrintInt(num, _sdsdf) {
-
+	gfx_PrintString(Math.round(num));
 }
 
 function gfx_PrintString(str) {
-
+	ctx.font = fontSize + "px Arial";
+	var estimatedSize = str.toString().length * fontSize / 1.7 ;
+	ctx.fillText(str, cursorX, cursorY + fontSize);
+	cursorX += estimatedSize
 }
 
-function gfx_SetColor(str) {
+function gfx_SetColor(color) {
+	ctx.strokeStyle = color;
+	ctx.fillStyle = color;
+}
 
+function gfx_Rectangle(x, y, width, height) {
+	ctx.beginPath();
+	ctx.rect(x, y, width, height);
+	ctx.stroke();
 }
 
 function clock() {
@@ -48,21 +56,45 @@ function clock() {
 }
 
 function gfx_PrintUInt(num) {
-
+	gfx_PrintInt(num, 0);
 }
 
 function kb_Scan() {
-
+	 kb_2nd = false;
+	 kb_Alpha = false;
+	 kb_Right = false;
+	 kb_Left = false;
+	 kb_Up = false;
+	 kb_Down = false;
+	 kb_DecPnt = false;
+	 kb_Data = false;
+	 kb_Chs = false;
+	 kb_Enter = false;
+	 kb_Sto = false;
+	 kb_6 = false;
+	 kb_3 = false;
 }
 
 function gfx_FillCircle(x, y, radius) {
-
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.fill();
 }
+
+
+// Input things
+window.addEventListener("wheel", event => {
+	if(event.deltaY < 0) {
+		kb_2nd = true;
+	} else {
+		kb_Alpha = true;
+	}
+});
 
 </script>
 
 <script>
-var selectedIndex;
+var selectedIndex = 0;
 
 var upIndexerIsDown;
 var downIndexerIsDown;
@@ -112,7 +144,7 @@ class body {
 
     // Kelvin
     surfaceTemperature = 27;
-    color = 0;
+    color = "rgb(255, 255, 255)";
 
     // Surface temp and area combined
     brightness = 0;
@@ -165,6 +197,7 @@ function getRandomName() {
 
 function getInput(formerValue) {
 	// TODO: input prompt
+	return prompt("Enter a new value", formerValue)
 }
 
 function gfx_PrintInt64_t(num, _hereForConsistancyDoesntDoAnything) {
@@ -466,7 +499,7 @@ function setSelectedIndexValueByUserInput() {
     }
     else if(selectedIndex == 7) {//atmosphree
         prevVal = bodies[selectedPlanet].atmosphereDensity;
-        bodies[selectedPlanet].atmosphereDensity = getInput(prevVal);
+        bodies[selectedPlanet].atmosphereDensity = getInput(prevVal) * 1000;
     }
     else if(selectedIndex == 8) {//water
         prevVal = bodies[selectedPlanet].waterAmount;
@@ -479,79 +512,19 @@ function setSelectedIndexValueByUserInput() {
     else if(selectedIndex == 11) {// Remove body
         removeBody(selectedPlanet);
     }
-	// TODO:
-    //while((kb_Data[2] & kb_Sto)) {kb_Scan();}
 }
 
-function controls() {
-    kb_Scan();
 
+// TODO: Migrate this to bottom of script
+function controls() {
     if (kb_2nd) {
-        camZoom -= (camZoom / 10);
+        camZoom -= (camZoom / 5);
+		kb_Scan();
     }
     if (kb_Alpha) {
-        camZoom += (camZoom / 10);
+        camZoom += (camZoom / 5);
+		kb_Scan();
     }
-    if (kb_Right) {
-        camX += (camZoom / 40);
-    }
-    if (kb_Left) {
-        camX -= (camZoom / 40);
-    }
-    if (kb_Up) {
-        camY += (camZoom / 40);
-    }
-    if (kb_Down) {
-        camY -= (camZoom / 40);
-    }
-    if((kb_DecPnt)) {
-        if(!prevDecPoint)
-            if(timeStep == 0) {
-                timeStep+=3600;
-            } else {
-                timeStep*=2;
-            }
-        prevDecPoint = true;
-    } else {prevDecPoint = false;}
-    if((kb_Chs)) {
-        if(!prevChs && timeStep > 3600)
-            timeStep/=2;
-        else {
-            paused = true;
-            timeStep = 0;
-        }
-        prevChs = true;
-    } else {prevChs = false;}
-
-    if((kb_Enter)) {
-        if(!prevEnter) {
-            selectedPlanet=(selectedPlanet + 1) % num_bodies;
-            camX = 0;
-            camY = 0;
-        }
-        prevEnter = true;
-    } else {prevEnter = false;}
-
-    if(kb_Sto) {
-        timeStep = 0;
-        draw();
-        setSelectedIndexValueByUserInput();
-    }
-
-
-    if((kb_6)) {
-        if(!upIndexerIsDown) {
-            selectedIndex--;
-        }
-        upIndexerIsDown = true;
-    } else {upIndexerIsDown = false;}
-
-    if((kb_3)) {
-        if(!downIndexerIsDown) {
-            selectedIndex++;
-        }
-        downIndexerIsDown = true;
-    } else {downIndexerIsDown = false;}
 }
 
 function draw_planet(i) {
@@ -564,9 +537,9 @@ function draw_planet(i) {
         }
     }
     //gfx_FillCircle(150, 150, drawSize);
-    var dispX = (bodies[i].x - camX - camX2) * SCREEN_X / camZoom + 160;
+    var dispX = (bodies[i].x - camX - camX2) * SCREEN_X / camZoom + SCREEN_X / 2;
     if(dispX + drawSize > 0 && dispX - drawSize < SCREEN_X) {
-        var dispY = (camY + camY2 - bodies[i].y) * SCREEN_X / camZoom + 120;
+        var dispY = (camY + camY2 - bodies[i].y) * SCREEN_X / camZoom + SCREEN_Y / 2;
         if(dispY + drawSize > 0 && dispY - drawSize < SCREEN_Y) {
             gfx_FillCircle(dispX, dispY, drawSize);
         }
@@ -574,48 +547,48 @@ function draw_planet(i) {
 }
 
 function planetInfo() {
-    gfx_SetColor(0);
+    gfx_SetColor("rgb(255,255,255)");
     //gfx_FillRectangle(SCREEN_X - 80, 0, 80, 240);
-    gfx_SetTextXY(SCREEN_X - 110, 0);
+    gfx_SetTextXY(SCREEN_X - 160, 0);
 
     gfx_PrintString(bodies[selectedPlanet].name);
 
-    gfx_SetTextXY(SCREEN_X - 110, 20);
+    gfx_SetTextXY(SCREEN_X - 160, 20 * (fontSize / normalFontSize));
 
     gfx_PrintString("R:");
     gfx_PrintUInt(bodies[selectedPlanet].radius, 1);
     gfx_PrintString("km");
 
-    gfx_SetTextXY(SCREEN_X - 110, 30);
+    gfx_SetTextXY(SCREEN_X - 160, 30 * (fontSize / normalFontSize));
 
     gfx_PrintString("T:");
     gfx_PrintUInt(bodies[selectedPlanet].surfaceTemperature, 1);
     gfx_PrintString("K");
 
-    gfx_SetTextXY(SCREEN_X - 110, 40);
+    gfx_SetTextXY(SCREEN_X - 160, 40 * (fontSize / normalFontSize));
 
     gfx_PrintString("T:");
     gfx_PrintInt((bodies[selectedPlanet].surfaceTemperature - 273) * 9 / 5 + 32, 1);
     gfx_PrintString("F");
 
-    gfx_SetTextXY(SCREEN_X - 110, 50);
+    gfx_SetTextXY(SCREEN_X - 160, 50 * (fontSize / normalFontSize));
 
     gfx_PrintString("Vx:");
     gfx_PrintInt(bodies[selectedPlanet].velocityX, 1);
     gfx_PrintString("kmh");
 
-    gfx_SetTextXY(SCREEN_X - 110, 60);
+    gfx_SetTextXY(SCREEN_X - 160, 60 * (fontSize / normalFontSize));
 
     gfx_PrintString("Vy:");
     gfx_PrintInt(bodies[selectedPlanet].velocityY, 1);
     gfx_PrintString("kmh");
 
-    gfx_SetTextXY(SCREEN_X - 110, 70);
+    gfx_SetTextXY(SCREEN_X - 160, 70 * (fontSize / normalFontSize));
 
     gfx_PrintString("M:");
     gfx_PrintInt(bodies[selectedPlanet].mass, 1);
 
-    gfx_SetTextXY(SCREEN_X - 110, 80);
+    gfx_SetTextXY(SCREEN_X - 160, 80 * (fontSize / normalFontSize));
 
     gfx_PrintString("A:");
     gfx_PrintInt(bodies[selectedPlanet].atmosphereDensity / 1000, 1);
@@ -624,19 +597,19 @@ function planetInfo() {
     gfx_PrintString("kg/m");
 
 
-    gfx_SetTextXY(SCREEN_X - 110, 90);
+    gfx_SetTextXY(SCREEN_X - 160, 90 * (fontSize / normalFontSize));
     gfx_PrintString("W:");
     gfx_PrintInt(bodies[selectedPlanet].waterAmount, 1);
     //bodies[selectedPlanet].waterAmount
-    gfx_SetTextXY(SCREEN_X - 110, 100);
+    gfx_SetTextXY(SCREEN_X - 160, 100 * (fontSize / normalFontSize));
     gfx_PrintString("CT:");
     gfx_PrintInt64_t(bodies[selectedPlanet].coreTemperature, 1);
     gfx_PrintString("K");
 
-    gfx_SetTextXY(SCREEN_X - 110, 110);
+    gfx_SetTextXY(SCREEN_X - 160, 110 * (fontSize / normalFontSize));
     gfx_PrintString("Create moon");
 
-    gfx_SetTextXY(SCREEN_X - 110, 120);
+    gfx_SetTextXY(SCREEN_X - 160, 120 * (fontSize / normalFontSize));
     gfx_PrintString("Remove Body");
 }
 
@@ -656,16 +629,16 @@ function estimatedCoreTemp(mass) {
 }
 
 function drawSelectedIndex() {
-    gfx_SetColor(0);
+    gfx_SetColor("rgb(255,0,0)");
     if(selectedIndex > 0) {
-        gfx_Rectangle(SCREEN_X - 110, selectedIndex * 10 + 10, 110, 8);
+        gfx_Rectangle(SCREEN_X  - 160, selectedIndex * 10 * (fontSize / normalFontSize) + 10 * (fontSize / normalFontSize), 160, 20);
     } else {
-        gfx_Rectangle(SCREEN_X - 110, selectedIndex * 10, 110, 8);
+        gfx_Rectangle(SCREEN_X - 160, selectedIndex * 10 * (fontSize / normalFontSize), 160, 20);
     }
 }
 
 function gui() {
-    gfx_SetTextFGColor(254);
+    gfx_SetTextFGColor("rgb(255, 255, 255)");
     gfx_SetTextXY(0, 0);
     gfx_PrintInt(camZoom, 2);
     gfx_PrintString(" KM    ");
@@ -699,6 +672,7 @@ function draw()
     }
 
     gui();
+	drawSelectedIndex()
 }
 
 /* Implement me! */
@@ -709,8 +683,80 @@ function step()
 
 main()
 const interval = setInterval(function() {
-   gameStep();
- }, 50);
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	SCREEN_X = canvas.width;
+	SCREEN_Y = canvas.height - 10;
+	gameStep();
+ }, 30);
 
+
+var startMX;
+var startMY;
+var startCX;
+var startCY;
+var mouseDown;
+var mouseDownPrev;
+
+onmousemove = function(e){
+	if(mouseDown && !mouseDownPrev) {
+		startMX = e.clientX;
+		startMY = e.clientY;
+		startCX = camX;
+		startCY = camY;
+	}
+	if(mouseDown) {
+		camX = startCX + (e.clientX - startMX) * camZoom / (canvas.width) * -1;
+		camY = startCY + (e.clientY - startMY) * camZoom / (canvas.width);
+	}
+	mouseDownPrev = mouseDown;
+}
+
+onmousedown = function(e){
+	mouseDown = true
+}
+
+onmouseup = function(e){
+	mouseDown = false
+}
+
+onkeydown = function(e){
+	switch(e.key) {
+		case "ArrowRight":
+			camX = 0;
+			camY = 0;
+			selectedPlanet = (selectedPlanet + 1) % num_bodies;
+			break;
+		case "ArrowLeft":
+			camX = 0;
+			camY = 0;
+			selectedPlanet = (selectedPlanet - 1) % num_bodies;
+			if(selectedPlanet < 0) {
+				selectedPlanet = num_bodies - 1;
+			}
+			break;
+		case "ArrowUp":
+			selectedIndex = (selectedIndex - 1);
+			break;
+		case "ArrowDown":
+			selectedIndex = (selectedIndex + 1);
+			break;
+		case ",":
+			timeStep /= 2;
+			break;
+		case ".":
+			if(timeStep == 0) {
+				timeStep = 225;
+			}
+			timeStep *= 2;
+			break;
+		case "Enter":
+			setSelectedIndexValueByUserInput()
+			timeStep = 0;
+			break;
+		default:
+			console.log(e.key);
+	}
+}
 
 </script>
