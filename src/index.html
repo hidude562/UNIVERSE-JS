@@ -1,6 +1,51 @@
 <body style="margin: 0; padding: 0;">
 	<canvas id="canvas" width="480" height="320" style="margin: 0; padding: 0; background-color: black;"></canvas>
+	<img id="dustyPlanet" src="./assets/dustyPlanet.png" style="display: none;">
+	<img id="verySmallwater" src="./assets/verySmallwater.png" style="display: none;">
+	<img id="evenSmallerWater" src="./assets/evenSmallerWater.png" style="display: none;">
+	<img id="waterSome" src="./assets/waterSome.png" style="display: none;">
+	<img id="waterLots" src="./assets/waterLots.png" style="display: none;">
+	<img id="waterAll" src="./assets/waterAll.png" style="display: none;">
+	<img id="allIce" src="./assets/allIce.png" style="display: none;">
+	<img id="mostIce" src="./assets/mostIce.png" style="display: none;">
+	<img id="someIce" src="./assets/someIce.png" style="display: none;">
+	<img id="littleIce" src="./assets/littleIce.png" style="display: none;">
+	<img id="lunarBase" src="./assets/lunarBase.png" style="display: none;">
+	<img id="midStar" src="./assets/midStar.png" style="display: none;">
+	<img id="dimStar" src="./assets/dimStar.png" style="display: none;">
+	<img id="blueStar" src="./assets/blueStar.png" style="display: none;">
+	<img id="planetWarm" src="./assets/planetWarm.png" style="display: none;">
+	<img id="gasGiantWarm" src="./assets/gasGiantWarm.png" style="display: none;">
+	<img id="gasGiantCold" src="./assets/gasGiantCold.png" style="display: none;">
+	<img id="atmosphereDenseCold" src="./assets/atmosphereDenseCold.png" style="display: none;">
+	<img id="atmosphereDenseWarm" src="./assets/atmosphereDenseWarm.png" style="display: none;">
 </body>
+
+
+<script>
+// Define some sprites
+var dustyPlanet = document.getElementById("dustyPlanet");
+var verySmallwater = document.getElementById("verySmallwater");
+var evenSmallerWater = document.getElementById("evenSmallerWater");
+var waterSome = document.getElementById("waterSome");
+var waterLots = document.getElementById("waterLots");
+var waterAll = document.getElementById("waterAll");
+var allIce = document.getElementById("allIce");
+var mostIce = document.getElementById("mostIce");
+var someIce = document.getElementById("someIce");
+var littleIce = document.getElementById("littleIce");
+var lunarBase = document.getElementById("lunarBase");
+
+var midStar = document.getElementById("midStar");
+var dimStar = document.getElementById("dimStar");
+var blueStar = document.getElementById("blueStar");
+var planetWarm = document.getElementById("planetWarm");
+
+var gasGiantWarm = document.getElementById("gasGiantWarm");
+var gasGiantCold = document.getElementById("gasGiantCold");
+var atmosphereDenseCold = document.getElementById("atmosphereDenseCold");
+var atmosphereDenseWarm = document.getElementById("atmosphereDenseWarm");
+</script>
 
 <script>
 // Simulating graphx methods
@@ -55,6 +100,11 @@ function clock() {
 	return 0;
 }
 
+function gfx_TransparentSprite(sprite, x, y) {
+	let img = document.getElementById(sprite);
+	ctx.drawImage(sprite, x, y);
+}
+
 function gfx_PrintUInt(num) {
 	gfx_PrintInt(num, 0);
 }
@@ -102,7 +152,7 @@ var isInputting = true;
 
 var timeStep = 3600;
 
-var maxBodies = 50
+var maxBodies = 500;
 var SCREEN_X = 320;
 var SCREEN_Y = 240;
 
@@ -114,7 +164,7 @@ var num_debris = 0;
 var camX2 = 0;
 var camY2 = 0;
 
-var camZoom = 100000;
+var camZoom = 2000000;
 var correctSizedBodies = true;
 
 //Don't use this unless you know you will be in the input dialauge, it wont be updated otherwise!
@@ -181,7 +231,7 @@ function getRandomName() {
 	var consonants = ["b", "c", "n", "p", "k", "d", "t", "v"];
 	var newName = "";
 
-	for (var i = 0; i < Math.floor(Math.random() * 5) + 2; i++) {
+	for (var i = 0; i < Math.floor(Math.random() * 5) + 4; i++) {
 		if (i % 2 === 0) {
 			newName += vowels[Math.floor(Math.random() * 8)];
 		} else {
@@ -197,7 +247,11 @@ function getRandomName() {
 
 function getInput(formerValue) {
 	// TODO: input prompt
-	return prompt("Enter a new value", formerValue)
+	var val = prompt("Enter a new value", formerValue)
+	if(val == null) {
+		return 0
+	}
+	return val
 }
 
 function gfx_PrintInt64_t(num, _hereForConsistancyDoesntDoAnything) {
@@ -270,7 +324,7 @@ function newDebris(i, otherObj, percentOfPrevBody) {
 // Also that obj1 is not a simple object, which should be the case anyway
 function createDebris(obj1, obj2) {
     bodies[obj1].surfaceTemperature += bodies[obj2].mass * 100 / (bodies[obj1].mass / 100) * 4;
-    if(bodies[obj1].mass / bodies[obj2].mass > 200 || bodies[obj2].isSimple) {
+    if(bodies[obj1].mass / bodies[obj2].mass > 200) {
         bodies[obj1].mass += bodies[obj2].mass;
         bodies[obj1].waterAmount += bodies[obj2].waterAmount;
         bodies[obj1].atmosphereDensity += bodies[obj2].atmosphereDensity / (bodies[obj1].mass / bodies[obj2].mass);
@@ -306,11 +360,13 @@ function main()
     setAdvancedPlanet(2, 0, -150000000, 0, 0, 43000000000, 696000, "Sol", 15000255, 0, 0, false);
     setAdvancedPlanet(3, 0, -150000000 + 66784000, 146000, 0, 106000, 6051, "Venus", 5160, 65000, 0, false);
     setAdvancedPlanet(4, 0, -150000000 + 250000000, 86677, 0, 13891, 2106, "Mars", 1090, 12, 2000, false);
+	setAdvancedPlanet(5, 0, -150000000 + 778500000, 46800, 0, 41260869, 143000, "Jupiter", 1300000, 100000, 0, false);
 
     return 0;
 }
 
 function gameStep() {
+	beginFrame = new Date();
 	if(timeStep > 0) {
 		calculateAllBodyPhysics();
 	}
@@ -468,10 +524,97 @@ function end()
 
 }
 
+// Note that this also updates the planet color in the main view
+// TODO: update all planet appearences, not just when selected
+function drawPreviewPlanet() {
+    if(bodies[selectedPlanet].moonLike) {
+        gfx_TransparentSprite(lunarBase, 4, SCREEN_Y - 45);
+		bodies[selectedPlanet].color = "rgb(160, 160, 160)";
+    } else {
+        gfx_TransparentSprite(dustyPlanet, 4, SCREEN_Y - 45);
+		bodies[selectedPlanet].color = "rgb(180, 80, 10)";
+    }
+
+    // Draw water
+    if(bodies[selectedPlanet].atmosphereDensity > 50) {
+        if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass * 2) {
+            gfx_TransparentSprite(waterAll, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,0,255)";
+        } else if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass) {
+            gfx_TransparentSprite(waterLots, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,0,255)";;
+        } else if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass / 2) {
+            gfx_TransparentSprite(waterSome, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,0,255)";;
+        } else if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass / 4) {
+            gfx_TransparentSprite(verySmallwater, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,0,255)";;
+        } else if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass / 12) {
+            gfx_TransparentSprite(evenSmallerWater, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,0,255)";;
+        }
+    }
+
+
+    // Ice-caps
+    if(bodies[selectedPlanet].waterAmount > bodies[selectedPlanet].mass / 2) {
+        if(bodies[selectedPlanet].surfaceTemperature < 225) {
+            gfx_TransparentSprite(allIce, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(255,255,255)";
+        } else if(bodies[selectedPlanet].surfaceTemperature < 260) {
+            gfx_TransparentSprite(mostIce, 4, SCREEN_Y - 45);
+        } else if(bodies[selectedPlanet].surfaceTemperature < 280) {
+            gfx_TransparentSprite(someIce, 4, SCREEN_Y - 45);
+        } else if(bodies[selectedPlanet].surfaceTemperature < 310) {
+            gfx_TransparentSprite(littleIce, 4, SCREEN_Y - 45);
+        }
+    }
+
+
+    // Atmoshpere
+    if(bodies[selectedPlanet].surfaceTemperature > 98) {
+        if(bodies[selectedPlanet].atmosphereDensity > 50000) {
+            gfx_TransparentSprite(gasGiantWarm, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(255,255,0)";
+        }
+        else if(bodies[selectedPlanet].atmosphereDensity > 5000) {
+            gfx_TransparentSprite(atmosphereDenseWarm, 4, SCREEN_Y - 45);
+        }
+    } else {
+        if(bodies[selectedPlanet].atmosphereDensity > 50000) {
+            gfx_TransparentSprite(gasGiantCold, 4, SCREEN_Y - 45);
+            bodies[selectedPlanet].color = "rgb(0,64,255)";
+        } else if(bodies[selectedPlanet].atmosphereDensity > 5000) {
+            gfx_TransparentSprite(atmosphereDenseCold, 4, SCREEN_Y - 45);
+        }
+    }
+
+
+    // Draw bright object if the object is warm
+    if(bodies[selectedPlanet].surfaceTemperature > 10000) {
+        gfx_TransparentSprite(blueStar, 4, SCREEN_Y - 45);
+        bodies[selectedPlanet].color = "rgb(0,255,255)";
+    } else if(bodies[selectedPlanet].surfaceTemperature > 3000) {
+        gfx_TransparentSprite(midStar, 4, SCREEN_Y - 45);
+        bodies[selectedPlanet].color = "rgb(255,255,0)";
+    } else if(bodies[selectedPlanet].surfaceTemperature > 2000) {
+        bodies[selectedPlanet].color = "rgb(0,0,255)";
+        gfx_TransparentSprite(dimStar, 4, SCREEN_Y - 45);
+    } else if(bodies[selectedPlanet].surfaceTemperature > 1000) {
+        bodies[selectedPlanet].color = "rgb(0,0,200)";
+        gfx_TransparentSprite(planetWarm, 4, SCREEN_Y - 45);
+    }
+
+    drawSelectedIndex();
+}
+
+
+
 function setSelectedIndexValueByUserInput() {
     var prevVal = 0;
     if(selectedIndex == 0) {//name
-
+		prevVal = bodies[selectedPlanet].name;
+        bodies[selectedPlanet].name = getInput(name);
     }
     else if(selectedIndex == 1) {//radius
         prevVal = bodies[selectedPlanet].radius;
@@ -487,11 +630,11 @@ function setSelectedIndexValueByUserInput() {
     }
     else if(selectedIndex == 4) {//Vx
         prevVal = bodies[selectedPlanet].velocityX;
-        bodies[selectedPlanet].velocityX = getInput(prevVal);
+        bodies[selectedPlanet].velocityX = Math.round(getInput(prevVal));
     }
     else if(selectedIndex == 5) {//Vy
         prevVal = bodies[selectedPlanet].velocityY;
-        bodies[selectedPlanet].velocityY = getInput(prevVal);
+        bodies[selectedPlanet].velocityY = Math.round(getInput(prevVal));
     }
     else if(selectedIndex == 6) {//mass
         prevVal = bodies[selectedPlanet].mass;
@@ -499,7 +642,7 @@ function setSelectedIndexValueByUserInput() {
     }
     else if(selectedIndex == 7) {//atmosphree
         prevVal = bodies[selectedPlanet].atmosphereDensity;
-        bodies[selectedPlanet].atmosphereDensity = getInput(prevVal) * 1000;
+        bodies[selectedPlanet].atmosphereDensity = getInput(prevVal / 1000) * 1000;
     }
     else if(selectedIndex == 8) {//water
         prevVal = bodies[selectedPlanet].waterAmount;
@@ -613,11 +756,6 @@ function planetInfo() {
     gfx_PrintString("Remove Body");
 }
 
-// TODO:
-function drawPreviewPlanet() {
-	
-}
-
 function estimatedCoreTemp(mass) {
     if(mass < 3848) {
         return mass;
@@ -651,7 +789,12 @@ function gui() {
     }
 
     gfx_SetTextXY(0, SCREEN_Y - 9);
-    gfx_PrintInt(10000 / (clock() - beginFrame), 2);
+	var fps = 1000 / (new Date() - beginFrame)
+	if(fps > 240){
+		gfx_PrintInt(240, 2);
+	} else {
+		gfx_PrintInt(fps, 2);
+	}
     gfx_PrintString("fps ");
 
     drawPreviewPlanet();
@@ -688,7 +831,7 @@ const interval = setInterval(function() {
 	SCREEN_X = canvas.width;
 	SCREEN_Y = canvas.height - 10;
 	gameStep();
- }, 30);
+ }, 0);
 
 
 var startMX;
@@ -749,6 +892,13 @@ onkeydown = function(e){
 				timeStep = 225;
 			}
 			timeStep *= 2;
+			break;
+		case " ":
+			if(timeStep == 0) {
+				timeStep = 2;
+			} else {
+				timeStep = 0;
+			}
 			break;
 		case "Enter":
 			setSelectedIndexValueByUserInput()
