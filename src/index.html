@@ -53,6 +53,8 @@ var cursorX = 0;
 var cursorY = 0;
 var normalFontSize = 8;
 var fontSize = 16;
+var mouseX = 0;
+var mouseY = 0;
 
 var kb_2nd = false;
 var kb_Alpha = false;
@@ -129,6 +131,10 @@ function gfx_FillCircle(x, y, radius) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
     ctx.fill();
+	if(Math.sqrt((mouseX - x) * (mouseX - x) + (mouseX - x) * (mouseX - x)) < radius + 5) {
+		return true;
+	}
+	return false;
 }
 
 
@@ -150,19 +156,22 @@ var upIndexerIsDown;
 var downIndexerIsDown;
 var isInputting = true;
 
-var timeStep = 3600;
+var timeStep = 1;
 
-var maxBodies = 500;
+var maxBodies = 5000;
 var SCREEN_X = 320;
 var SCREEN_Y = 240;
 
 var camX = 0;
 var camY = 0;
+var debrisIsSimple = true;
 
 var num_bodies = 0;
 var num_debris = 0;
 var camX2 = 0;
 var camY2 = 0;
+var mouseX = 0;
+var mouseY = 0;
 
 var camZoom = 2000000;
 var correctSizedBodies = true;
@@ -286,60 +295,79 @@ function cameraOnPlanet(planet) {
 }
 
 // Creates new debris that has similar compisition to I but less of it
+// Other OBJ most be smaller than i
 function newDebris(i, otherObj, percentOfPrevBody) {
-    var newIndex = maxBodies - num_debris;
-    num_debris++;
-    bodies[newIndex].isBeingUsed = true;
-    bodies[newIndex].isSimple = true;
-
+	var newIndex;
+	if(bodies[i].mass / bodies[otherObj].mass > 200 || debrisIsSimple || bodies[otherObj].mass < 100) {
+		newIndex = maxBodies - num_debris;
+		num_debris++;
+		bodies[newIndex].isBeingUsed = true;
+		bodies[newIndex].isSimple = true;
+	} else {
+		newIndex = num_bodies;
+		num_bodies++;
+		bodies[newIndex].isBeingUsed = true;
+		bodies[newIndex].isSimple = false;
+	}
+	
+	bodies[newIndex].name = getRandomName();
     bodies[newIndex].mass = (bodies[i].mass * percentOfPrevBody) / 100;
     bodies[newIndex].waterAmount = (bodies[i].waterAmount * percentOfPrevBody) / 100;
     bodies[newIndex].atmosphereDensity = (bodies[i].atmosphereDensity * percentOfPrevBody) / 100;
-    bodies[newIndex].radius = (bodies[i].radius * percentOfPrevBody) / 100;
+    bodies[newIndex].radius = fastestSqrt64((bodies[i].radius* bodies[i].radius * percentOfPrevBody) / 100)
     bodies[newIndex].surfaceTemperature = 300;
     bodies[newIndex].coreTemperature = 1000;
+	bodies[newIndex].brightness = 0;
+    bodies[newIndex].surfaceStabilizeTemperature = 0;
+	bodies[newIndex].moonLike = bodies[otherObj].moonLike;
 
     bodies[newIndex].x = bodies[i].x;
     bodies[newIndex].y = bodies[i].y;
 
 
-    var randomDir1 = Math.random() * 256;
-    var randomDir2 = Math.random() * 256;
-
-    bodies[newIndex].velocityX = bodies[i].velocityX + randomDir1 * 50;//(bodies[i].velocityX / 3 * randomDir / 128);
-    bodies[newIndex].velocityY = bodies[i].velocityY + randomDir2 * 50;//(bodies[i].velocityY / 3 * 128 / randomDir);
+    var randomDir1 = (Math.random() - 0.5) * 10;
+	
+    bodies[newIndex].velocityX = (bodies[i].velocityX);//(bodies[i].velocityX / 3 * randomDir / 128);
+    bodies[newIndex].velocityY = (bodies[i].velocityY);//(bodies[i].velocityY / 3 * 128 / randomDir);
+	var deltaVX = (bodies[otherObj].velocityX - bodies[i].velocityX);
+	var deltaVY = (bodies[otherObj].velocityY - bodies[i].velocityY);
+	var deltaV  = Math.sqrt(deltaVX * deltaVX + deltaVY * deltaVY)
+	
+	bodies[newIndex].velocityX += (deltaVX) / 1.3 + (Math.cos(randomDir1)) * deltaV / 1.1 * (1 + (Math.random() - 0.5) / 4);
+	bodies[newIndex].velocityY += (deltaVY) / 1.3 + (Math.sin(randomDir1)) * deltaV / 1.1 * (1 + (Math.random() - 0.5) / 4);
+	
 
     var deltaX = (bodies[i].x - bodies[otherObj].x);
     var deltaY = (bodies[i].y - bodies[otherObj].y);
 
-    bodies[newIndex].velocityX += deltaX / 4;
-    bodies[newIndex].velocityY += deltaY / 4;
-
-    var distanceToOther = fastestSqrt64((deltaX * deltaX) + (deltaY * deltaY));
-    bodies[newIndex].x += ((deltaX * 100) / distanceToOther) * (bodies[otherObj].radius + bodies[i].radius) / 98;
-    bodies[newIndex].y += ((deltaY * 100) / distanceToOther) * (bodies[otherObj].radius + bodies[i].radius) / 98;
+	var distanceToOther = fastestSqrt64((deltaX * deltaX) + (deltaY * deltaY));
+	
+    bodies[newIndex].x += ((deltaX) / distanceToOther) * (bodies[newIndex].radius + bodies[i].radius) / 1;
+    bodies[newIndex].y += ((deltaY) / distanceToOther) * (bodies[newIndex].radius + bodies[i].radius) / 1;
+	bodies[newIndex].x += bodies[newIndex].velocityX / 5;
+	bodies[newIndex].y += bodies[newIndex].velocityY / 5
 }
 
 // Precondition: obj1 is larger (in mass) than obj2
 // Also that obj1 is not a simple object, which should be the case anyway
 function createDebris(obj1, obj2) {
-    bodies[obj1].surfaceTemperature += bodies[obj2].mass * 100 / (bodies[obj1].mass / 100) * 4;
-    if(bodies[obj1].mass / bodies[obj2].mass > 200) {
+    // TODO:
+	//bodies[obj1].surfaceTemperature += bodies[obj2].mass * 100 / (bodies[obj1].mass / 100) * 4;
+    if(bodies[obj1].mass / bodies[obj2].mass > 200 || obj2.isSimple) {
         bodies[obj1].mass += bodies[obj2].mass;
         bodies[obj1].waterAmount += bodies[obj2].waterAmount;
         bodies[obj1].atmosphereDensity += bodies[obj2].atmosphereDensity / (bodies[obj1].mass / bodies[obj2].mass);
-        // technically not correct
-        bodies[obj1].radius += bodies[obj2].radius;
+        // technically correct
+        bodies[obj1].radius = fastestSqrt64(bodies[obj1].radius * bodies[obj1].radius + bodies[obj2].radius * bodies[obj2].radius);
 
         removeBody(obj2);
         return;
     } else {
-
-        newDebris(obj2, obj1, 20);
-        newDebris(obj2, obj1, 20);
-        newDebris(obj2, obj1, 20);
-        newDebris(obj2, obj1, 20);
-        newDebris(obj2, obj1, 20);
+		var numNewDebris = 10;
+		
+		for(var i = 0; i < numNewDebris; i++) {
+			newDebris(obj2, obj1, 100 / numNewDebris + Math.random());
+		}
 
         removeBody(obj2);
     }
@@ -349,19 +377,20 @@ function main()
 {
 	
     // Test for collision
-    /*
-    setAdvancedPlanet(0, 0, 0, 0, 0, 130000, 63780, "Earth", 15900, 1293, 130000, false);
-    setAdvancedPlanet(1, 0, -384400, 0, 0, 1560, 10079, "Luna", 1300, 0, 0, true);
-    */
+    
+    setAdvancedPlanet(0, 0, 0, 0, 0, 130000, 6378, "Earth", 15900, 1293, 130000, false);
+    setAdvancedPlanet(1, 0, -384400, 0, 0, 15600, 1079, "Luna", 1300, 0, 0, true);
+    
 
-
+	/*
     setAdvancedPlanet(0, 0, 0, 107826, 0, 130000, 6378, "Earth", 1590, 1293, 130000, false);
     setAdvancedPlanet(1, 0, -384400, 107826 + 3683, 0, 1600, 1079, "Luna", 1300, 0, 0, true);
     setAdvancedPlanet(2, 0, -150000000, 0, 0, 43000000000, 696000, "Sol", 15000255, 0, 0, false);
     setAdvancedPlanet(3, 0, -150000000 + 66784000, 146000, 0, 106000, 6051, "Venus", 5160, 65000, 0, false);
     setAdvancedPlanet(4, 0, -150000000 + 250000000, 86677, 0, 13891, 2106, "Mars", 1090, 12, 2000, false);
 	setAdvancedPlanet(5, 0, -150000000 + 778500000, 46800, 0, 41260869, 143000, "Jupiter", 1300000, 100000, 0, false);
-
+	*/
+	
     return 0;
 }
 
@@ -403,7 +432,7 @@ function applyBody(i) {
 
 function physics(i) {
     bodies[i].surfaceStabilizeTemperature = bodies[i].coreTemperature / 2599;
-
+	
     for(var j = 0; j < num_bodies; j++) {
         if(j != i) {
             if(bodies[j].mass * 15 / bodies[i].mass != 0) {
@@ -670,7 +699,7 @@ function controls() {
     }
 }
 
-function draw_planet(i) {
+function draw_planet(i, mouseClick) {
     gfx_SetColor(bodies[i].color);
     var drawSize = 10;
     if(correctSizedBodies) {
@@ -684,7 +713,12 @@ function draw_planet(i) {
     if(dispX + drawSize > 0 && dispX - drawSize < SCREEN_X) {
         var dispY = (camY + camY2 - bodies[i].y) * SCREEN_X / camZoom + SCREEN_Y / 2;
         if(dispY + drawSize > 0 && dispY - drawSize < SCREEN_Y) {
-            gfx_FillCircle(dispX, dispY, drawSize);
+            var mouseInside = gfx_FillCircle(dispX, dispY, drawSize);
+			if(mouseInside && mouseClick) {
+				camX = 0;
+				camY = 0;
+				selectedPlanet = i;
+			}
         }
     }
 }
@@ -802,17 +836,21 @@ function gui() {
     planetInfo();
 }
 
+function drawPlanets(mouseClick) {
+	for(var i = 0; i < num_bodies; i++) {
+        draw_planet(i, mouseClick);
+    }
+	
+	for(var i = maxBodies; i > maxBodies - num_debris; i--) {
+        draw_planet(i);
+    }
+}
+
 function draw()
 {
     gfx_FillScreen(2);
-    //gfx_SetDefaultPalette(global_palette);
-    for(var i = 0; i < num_bodies; i++) {
-        draw_planet(i);
-    }
 
-    for(var i = maxBodies; i > maxBodies - num_debris; i--) {
-        draw_planet(i);
-    }
+    drawPlanets(false)
 
     gui();
 	drawSelectedIndex()
@@ -838,29 +876,38 @@ var startMX;
 var startMY;
 var startCX;
 var startCY;
+var amountMouseMoved;
 var mouseDown;
 var mouseDownPrev;
 
 onmousemove = function(e){
-	if(mouseDown && !mouseDownPrev) {
-		startMX = e.clientX;
-		startMY = e.clientY;
-		startCX = camX;
-		startCY = camY;
-	}
+	mouseX = e.clientX;
+	mouseY = e.clientY;
 	if(mouseDown) {
 		camX = startCX + (e.clientX - startMX) * camZoom / (canvas.width) * -1;
 		camY = startCY + (e.clientY - startMY) * camZoom / (canvas.width);
+		amountMouseMoved += Math.abs((e.clientX - startMX)) + Math.abs((e.clientY - startMY))
 	}
 	mouseDownPrev = mouseDown;
 }
 
 onmousedown = function(e){
+	startMX = e.clientX;
+	startMY = e.clientY;
+	amountMouseMoved = 0;
+	startCX = camX;
+	startCY = camY;
 	mouseDown = true
 }
 
 onmouseup = function(e){
 	mouseDown = false
+}
+
+onclick = function(e) {
+	if(amountMouseMoved < 150) {
+		drawPlanets(true)
+	}
 }
 
 onkeydown = function(e){
@@ -889,7 +936,7 @@ onkeydown = function(e){
 			break;
 		case ".":
 			if(timeStep == 0) {
-				timeStep = 225;
+				timeStep = 1;
 			}
 			timeStep *= 2;
 			break;
